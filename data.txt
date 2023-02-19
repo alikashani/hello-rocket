@@ -1,0 +1,1 @@
+Some data from a file named "data.txt"!
