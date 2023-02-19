@@ -32,8 +32,8 @@ fn is_prime(number: u64) -> Json<NumberResponse> {
 }
 
 #[get("/health")]
-async fn health() -> String {
-    "OK".to_string()
+async fn health() -> &'static str {
+    "OK"
 }
 
 #[rocket::main]
