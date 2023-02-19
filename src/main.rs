@@ -20,13 +20,8 @@ fn index() -> &'static str {
     "This is my Rust prime number REST API"
 }
 
-#[get("/next")]
-fn next() -> &'static str {
-    "Orange sauce!"
-}
-
 #[get("/is-prime?<number>")]
-fn get_is_prime(number: u64) -> Json<NumberResponse> {
+fn is_prime(number: u64) -> Json<NumberResponse> {
     let now = SystemTime::now();
 
     Json(NumberResponse {
@@ -36,9 +31,9 @@ fn get_is_prime(number: u64) -> Json<NumberResponse> {
     })
 }
 
-#[get("/hello/<name>")]
-fn hello(name: &str) -> String {
-    format!("Hello, {}!!!", name)
+#[get("/health")]
+async fn health() -> String {
+    "OK".to_string()
 }
 
 #[rocket::main]
@@ -48,7 +43,7 @@ async fn main() {
 
     let _ = rocket::build()
         .configure(config)
-        .mount("/", routes![index, get_is_prime, hello, next])
+        .mount("/", routes![index, health, is_prime])
         .launch()
         .await;
 }

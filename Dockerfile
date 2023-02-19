@@ -1,46 +1,34 @@
-####################################################################################################
-## Builder
-####################################################################################################
-FROM rust:latest AS builder
+FROM rust:1.67.0 as builder
 
-RUN rustup target add x86_64-unknown-linux-musl
-RUN apt update && apt install -y musl-tools musl-dev
-RUN update-ca-certificates
+WORKDIR /hello-rocket
 
-# Create appuser
-ENV USER=app
-ENV UID=10001
+COPY . .
 
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    "${USER}"
+RUN cargo build --release
 
-WORKDIR /app
+FROM debian:buster-slim
+ARG APP=/usr/src/app
 
-COPY ./ .
+RUN apt-get update \
+  & apt-get install -y extra-runtime-dependencies \
+  & rm -rf /var/lib/apt/lists/*
 
-RUN cargo build --target x86_64-unknown-linux-musl --release
+EXPOSE 8000
 
-####################################################################################################
-## Final image
-####################################################################################################
-FROM scratch
+ENV TZ=Etc/UTC \
+    APP_USER=appuser
 
-# Import from builder.
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /etc/group /etc/group
+RUN groupadd $APP_USER \
+    && useradd -g $APP_USER $APP_USER \
+    && mkdir -p ${APP}
 
-WORKDIR /app
+COPY --from=builder \
+  /hello-rocket/target/release/hello-rocket \
+  ${APP}/hello-rocket
 
-# Copy our build
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/hello-rocket ./
+RUN chown -R $APP_USER:$APP_USER ${APP}
 
-# Use an unprivileged user.
-USER app:app
+USER $APP_USER
+WORKDIR ${APP}
 
-CMD ["/app/hello-rocket"]
+CMD ["./hello-rocket"]
